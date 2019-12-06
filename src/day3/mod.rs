@@ -41,13 +41,14 @@ impl Point {
 #[derive(Debug)]
 struct Line {
     direction: Direction,
+    distance: i32,
     start: Point,
     end: Point
 }
 
 impl Line {
-    fn new(start: Point, end: Point, direction: Direction) -> Line {
-        Line { direction, start, end }
+    fn new(start: Point, end: Point, direction: Direction, distance: i32) -> Line {
+        Line { direction, distance, start, end }
     } 
 }
 
@@ -125,7 +126,7 @@ fn wire_to_coords(wire: Vec<Action>) -> Vec<Line> {
             Direction::UP => Point::new(start.x, start.y + action.distance),
             Direction::DOWN => Point::new(start.x, start.y - action.distance),
         };
-        output.push(Line::new(Point::new(start.x, start.y), Point::new(end.x, end.y), action.direction));
+        output.push(Line::new(Point::new(start.x, start.y), Point::new(end.x, end.y), action.direction, action.distance));
         start = end
     }
     output
@@ -159,8 +160,43 @@ pub fn part1() -> String<> {
     closest.unwrap().to_string()
 }
 
+fn get_crossing_dist(line1: &Line, line2: &Line) -> i32 {
+
+    if line1.direction == Direction::UP || line1.direction == Direction::DOWN {
+        return (line2.start.y - line1.start.y).abs()
+    }
+
+    return (line2.start.x - line1.start.x).abs()
+}
 
 pub fn part2() -> String<> {
 
-    String::new()
+    let wires: Vec<Vec<Line>> = parse_input()
+        .into_iter()
+        .map(wire_to_coords)
+        .collect();
+
+    let wire1 = &wires[0];
+    let wire2 = &wires[1];
+
+    let mut min = 10000000;
+    let mut line1_dist = 0;
+    for line1 in wire1 {
+        line1_dist += line1.distance;
+        let mut line2_dist = 0;
+        for line2 in wire2 {
+            line2_dist += line2.distance;
+            match intersects(line1, line2) {
+                Some(_point) => {
+                    let extra_line1 = line1.distance - get_crossing_dist(&line1, &line2);
+                    let extra_line2 = line2.distance - get_crossing_dist(&line2, &line1);
+                    let dist = line1_dist + line2_dist - (extra_line1 + extra_line2);
+                    if dist < min { min = dist; }
+                },
+                None => ()
+            }
+        }
+    }
+    
+    min.to_string()
 }
